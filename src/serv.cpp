@@ -66,6 +66,7 @@ void SSDBServer::reg_procs(NetworkServer *net){
 	REG_PROC(multi_hset, "wt");
 	REG_PROC(multi_hdel, "wt");
 	REG_PROC(hfix, "wt");
+	REG_PROC(mytest, "rt");
 
 	// because zrank may be extremly slow, execute in a seperate thread
 	REG_PROC(zrank, "rt");

@@ -11,7 +11,7 @@ all: ${OBJS} ssdb-server.o
 	${CXX} -o ../ssdb-server ssdb-server.o ${OBJS} ${LIBS} ${CLIBS} client/SSDB_impl.o
 
 ssdb-server.o: ssdb-server.cpp
-	${CXX} ${CFLAGS} -c ssdb-server.cpp
+	${CXX} ${CFLAGS} -g -c ssdb-server.cpp
 slave.o: slave.h slave.cpp
 	${CXX} ${CFLAGS} -c slave.cpp
 backend_dump.o: backend_dump.h backend_dump.cpp

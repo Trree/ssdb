@@ -29,3 +29,4 @@ DEF_PROC(multi_hget);
 DEF_PROC(multi_hset);
 DEF_PROC(multi_hdel);
 DEF_PROC(hfix);
+DEF_PROC(mytest);

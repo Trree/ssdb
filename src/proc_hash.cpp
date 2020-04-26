@@ -288,6 +288,16 @@ int proc_hincr(NetworkServer *net, Link *link, const Request &req, Response *res
 	return _hincr(serv->ssdb, req, resp, 1);
 }
 
+int proc_mytest(NetworkServer *net, Link *link, const Request &req, Response *resp){
+	log_debug("start proc_mytest");
+	SSDBServer *serv = (SSDBServer *)net->data;
+	log_debug("mytest start sleep");
+	usleep(10000 * 1000);
+	log_debug("mytest end sleep");
+	resp->push_back("hello test");
+	return 0;
+}
+
 int proc_hdecr(NetworkServer *net, Link *link, const Request &req, Response *resp){
 	SSDBServer *serv = (SSDBServer *)net->data;
 	return _hincr(serv->ssdb, req, resp, -1);

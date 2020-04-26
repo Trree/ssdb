@@ -136,6 +136,7 @@ public:
 	/// @name Map(Hash) methods
 	/// @{
 	virtual Status hget(const std::string &name, const std::string &key, std::string *val) = 0;
+	virtual Status mytest(const std::string &name, const std::string &key) = 0;
 	virtual Status hset(const std::string &name, const std::string &key, const std::string &val) = 0;
 	virtual Status hdel(const std::string &name, const std::string &key) = 0;
 	virtual Status hincr(const std::string &name, const std::string &key, int64_t incrby, int64_t *ret) = 0;

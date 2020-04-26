@@ -46,6 +46,7 @@ public:
 	virtual Status multi_del(const std::vector<std::string> &keys);
 	
 	virtual Status hget(const std::string &name, const std::string &key, std::string *val);
+	virtual Status mytest(const std::string &name, const std::string &key);
 	virtual Status hset(const std::string &name, const std::string &key, const std::string &val);
 	virtual Status hdel(const std::string &name, const std::string &key);
 	virtual Status hincr(const std::string &name, const std::string &key, int64_t incrby, int64_t *ret);

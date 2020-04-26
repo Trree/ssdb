@@ -25,6 +25,8 @@ found in the LICENSE file.
 #include <sys/stat.h>
 #include <pthread.h>
 #include <string>
+#include <sys/types.h>
+#include <pthread.h>
 
 class Logger{
 	public:
@@ -99,13 +101,13 @@ int log_write(int level, const char *fmt, ...);
 		#define log_trace(fmt, args...) do{}while(0)
 	#else
 		#define log_trace(fmt, args...)	\
-			log_write(Logger::LEVEL_TRACE, "%s(%d): " fmt, __FILE__, __LINE__, ##args)
+			log_write(Logger::LEVEL_TRACE, "pid:%lu %s(%d) : " fmt, pthread_self(), __FILE__, __LINE__, ##args)
 	#endif
 
 	#define log_debug(fmt, args...)	\
-		log_write(Logger::LEVEL_DEBUG, "%s(%d): " fmt, __FILE__, __LINE__, ##args)
+		log_write(Logger::LEVEL_DEBUG, "pid:%lu %s(%d): " fmt, pthread_self(), __FILE__, __LINE__, ##args)
 	#define log_info(fmt, args...)	\
-		log_write(Logger::LEVEL_INFO,  "%s(%d): " fmt, __FILE__, __LINE__, ##args)
+		log_write(Logger::LEVEL_INFO,  "pid:%lu %s(%d): " fmt, pthread_self(), __FILE__, __LINE__, ##args)
 	#define log_warn(fmt, args...)	\
 		log_write(Logger::LEVEL_WARN,  "%s(%d): " fmt, __FILE__, __LINE__, ##args)
 	#define log_error(fmt, args...)	\

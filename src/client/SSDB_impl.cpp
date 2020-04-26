@@ -74,12 +74,14 @@ Client* Client::connect(const std::string &ip, int port){
 }
 
 const std::vector<std::string>* ClientImpl::request(const std::vector<std::string> &req){
+	printf("Usage: start send\n");
 	if(link->send(req) == -1){
 		return NULL;
 	}
 	if(link->flush() == -1){
 		return NULL;
 	}
+	printf("Usage: end flush send and start revice\n");
 	const std::vector<Bytes> *packet = link->response();
 	if(packet == NULL){
 		return NULL;
@@ -89,6 +91,7 @@ const std::vector<std::string>* ClientImpl::request(const std::vector<std::strin
 		const Bytes &b = *it;
 		resp_.push_back(b.String());
 	}
+	printf("Usage: end revice\n");
 	return &resp_;
 }
 
@@ -286,6 +289,13 @@ Status ClientImpl::hget(const std::string &name, const std::string &key, std::st
 	const std::vector<std::string> *resp;
 	resp = this->request("hget", name, key);
 	return _read_str(resp, val);
+}
+
+Status ClientImpl::mytest(const std::string &name, const std::string &key){
+	const std::vector<std::string> *resp;
+	resp = this->request("mytest", name, key);
+	Status s(resp);
+	return s;
 }
 
 Status ClientImpl::hset(const std::string &name, const std::string &key, const std::string &val){

@@ -14,6 +14,7 @@ found in the LICENSE file.
 #include <pthread.h>
 #include <queue>
 #include <vector>
+#include "log.h"
 
 class Mutex{
 	private:
@@ -198,10 +199,13 @@ int Queue<T>::push(const T item){
 		return -1;
 	}
 	{
+		log_debug("start push queue");
 		items.push(item);
+		log_debug("end push queue");
 	}
 	pthread_mutex_unlock(&mutex);
 	pthread_cond_signal(&cond);
+	log_debug("start pthread_cond_signal");
 	return 1;
 }
 
@@ -214,6 +218,7 @@ int Queue<T>::pop(T *data){
 		// 必须放在循环中, 因为多个线程 pthread_cond_wait 可能同时返回(看具体实现策略)
 		while(items.empty()){
 			//fprintf(stderr, "%d wait\n", pthread_self());
+			log_debug("queue wait");
 			if(pthread_cond_wait(&cond, &mutex) != 0){
 				//fprintf(stderr, "%s %d -1!\n", __FILE__, __LINE__);
 				return -1;
@@ -223,6 +228,7 @@ int Queue<T>::pop(T *data){
 		*data = items.front();
 		//fprintf(stderr, "%d job: %d\n", pthread_self(), (int)*data);
 		items.pop();
+		log_debug("queue pop");
 	}
 	if(pthread_mutex_unlock(&mutex) != 0){
 		//fprintf(stderr, "error!\n");
@@ -239,6 +245,7 @@ SelectableQueue<T>::SelectableQueue(){
 		fprintf(stderr, "create pipe error\n");
 		exit(0);
 	}
+	log_debug("pipe %d %d", fds[0], fds[1]);
 	pthread_mutex_init(&mutex, NULL);
 }
 
@@ -255,8 +262,11 @@ int SelectableQueue<T>::push(const T item){
 		return -1;
 	}
 	{
+		log_debug("selectableQueu push start");
 		items.push(item);
+		log_debug("selectableQueu push end");
 	}
+	log_debug("start push and write %d", fds[1]);
 	if(::write(fds[1], "1", 1) == -1){
 		fprintf(stderr, "write fds error\n");
 		exit(0);
@@ -280,6 +290,7 @@ int SelectableQueue<T>::pop(T *data){
 	char buf[1];
 
 	while(1){
+		log_debug("start selectableQueu pop %d", fds[0]);
 		n = ::read(fds[0], buf, 1);
 		if(n < 0){
 			if(errno == EINTR){
@@ -301,6 +312,7 @@ int SelectableQueue<T>::pop(T *data){
 				}
 				*data = items.front();
 				items.pop();
+				log_debug("SelectableQueue end pop");
 			}
 			pthread_mutex_unlock(&mutex);
 		}
@@ -346,6 +358,7 @@ void* WorkerPool<W, JOB>::_run_worker(void *arg){
 	worker->id = id;
 	worker->init();
 	while(1){
+		log_debug("start work name ");
 		JOB job;
 		if(tp->jobs.pop(&job) == -1){
 			fprintf(stderr, "jobs.pop error\n");
@@ -355,7 +368,15 @@ void* WorkerPool<W, JOB>::_run_worker(void *arg){
 		if(!tp->started){
 			break;
 		}
+		log_debug("worker1: w:%.3f,p:%.3f, req: %s, resp: %s",
+				job->time_wait, job->time_proc,
+				serialize_req(*job->req).c_str(),
+				serialize_req(job->resp.resp).c_str());
 		worker->proc(job);
+		log_debug("worker2: w:%.3f,p:%.3f, req: %s, resp: %s",
+				job->time_wait, job->time_proc,
+				serialize_req(*job->req).c_str(),
+				serialize_req(job->resp.resp).c_str());
 		if(tp->results.push(job) == -1){
 			fprintf(stderr, "results.push error\n");
 			::exit(0);

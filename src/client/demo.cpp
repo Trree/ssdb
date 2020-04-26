@@ -114,6 +114,11 @@ int main(int argc, char **argv){
 	
 	printf("\n");
 	{
+		printf("start mytest\n");
+		s = client->mytest(hash, key);
+		//assert(s.ok());
+		printf("end mytest\n");
+
 		s = client->hset(hash, key, "test_val");
 		assert(s.ok());
 

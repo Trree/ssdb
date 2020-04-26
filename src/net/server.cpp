@@ -226,6 +226,7 @@ NetworkServer* NetworkServer::init(const Config &conf, int num_readers, int num_
 void NetworkServer::serve(){
 	writer = new ProcWorkerPool("writer");
 	writer->start(num_writers);
+	log_debug("start write then reader");
 	reader = new ProcWorkerPool("reader");
 	reader->start(num_readers);
 
@@ -237,6 +238,7 @@ void NetworkServer::serve(){
 	fdes->set(serv_link->fd(), FDEVENT_IN, 0, serv_link);
 	fdes->set(this->reader->fd(), FDEVENT_IN, 0, this->reader);
 	fdes->set(this->writer->fd(), FDEVENT_IN, 0, this->writer);
+	log_debug("the event fd %d %d %d", serv_link->fd(), this->reader->fd(), this->writer->fd());
 	
 	uint32_t last_ticks = g_ticks;
 	
@@ -249,6 +251,13 @@ void NetworkServer::serve(){
 			log_info("server running, links: %d", this->link_count);
 		}
 		
+		for(int i = 0; i < ready_list.size(); i++) {
+			log_debug("the ready list is %d", ready_list[i]->fd());
+		}
+		for(int i = 0; i < ready_list_2.size(); i++) {
+			log_debug("the ready list 2 is %d", ready_list_2[i]->fd());
+		}
+
 		ready_list.swap(ready_list_2);
 		ready_list_2.clear();
 		
@@ -265,6 +274,7 @@ void NetworkServer::serve(){
 
 		double loop_time_0 = microtime() - loop_stime;
 		
+		//log_debug("start events %d", events->size());
 		for(int i=0; i<(int)events->size(); i++){
 			const Fdevent *fde = events->at(i);
 			if(fde->data.ptr == serv_link){
@@ -284,17 +294,21 @@ void NetworkServer::serve(){
 					log_fatal("reading result from workers error!");
 					exit(0);
 				}
+				log_debug("start handle");
 				proc_result(job, &ready_list);
 			}else{
+				log_debug("start xxxx");
 				proc_client_event(fde, &ready_list);
 			}
 		}
+		//log_debug("end handle events");
 
 		double loop_time_1 = microtime() - loop_stime;
 
 		for(it = ready_list.begin(); it != ready_list.end(); it ++){
 			Link *link = *it;
 			fdes->del(link->fd());
+			log_debug("link fd %d", link->fd());
 
 			if(link->error()){
 				this->link_count --;
@@ -329,6 +343,7 @@ void NetworkServer::serve(){
 				proc_result(job, &ready_list_2);
 			}
 		} // end foreach ready link
+		//log_debug("end foreach ready link");
 
 		double loop_time = microtime() - loop_stime;
 		if(loop_time > 0.5){
@@ -384,6 +399,7 @@ int NetworkServer::proc_result(ProcJob *job, ready_list_t *ready_list){
 		link->mark_error();
 		ready_list->push_back(link);
 	}else{
+		log_debug("the proc_result %d", link->fd());
 		if(link->output->empty()){
 			fdes->clr(link->fd(), FDEVENT_OUT);
 			if(link->input->empty()){
@@ -427,7 +443,7 @@ int NetworkServer::proc_client_event(const Fdevent *fde, ready_list_t *ready_lis
 	Link *link = (Link *)fde->data.ptr;
 	if(fde->events & FDEVENT_IN){
 		int len = link->read();
-		//log_debug("fd: %d read: %d", link->fd(), len);
+		log_debug("fd: %d read: %d", link->fd(), len);
 		if(len <= 0){
 			double serv_time = microtime() - link->create_time;
 			log_debug("fd: %d, read: %d, delete link, s:%.3f", link->fd(), len, serv_time);
@@ -435,10 +451,12 @@ int NetworkServer::proc_client_event(const Fdevent *fde, ready_list_t *ready_lis
 			ready_list->push_back(link);
 			return 0;
 		}
+		log_debug("link fd start push back %d", link->fd());
 		ready_list->push_back(link);
 	}else if(fde->events & FDEVENT_OUT){
+		log_debug("start to write %d", link->fd());
 		int len = link->write();
-		//log_debug("fd: %d, write: %d", link->fd(), len);
+		log_debug("fd: %d, write: %d", link->fd(), len);
 		if(len <= 0){
 			log_debug("fd: %d, write: %d, delete link", link->fd(), len);
 			link->mark_error();
@@ -490,15 +508,22 @@ int NetworkServer::proc(ProcJob *job){
 		}
 		
 		if(job->cmd->flags & Command::FLAG_THREAD){
+			log_debug("start push");
 			if(job->cmd->flags & Command::FLAG_WRITE){
 				writer->push(job);
 			}else{
 				reader->push(job);
 			}
+			log_info("xxx: w:%.3f,p:%.3f, req: %s, resp: %s",
+				job->time_wait, job->time_proc,
+				serialize_req(*job->req).c_str(),
+				serialize_req(job->resp.resp).c_str());
 			return PROC_THREAD;
 		}
 
 		proc_t p = job->cmd->proc;
+		log_info("server running, function name: %pF %p ", p, p); 
+		log_info("server running, function name1: %pF %p ", *p, *p); 
 		job->time_wait = 1000 * (microtime() - job->stime);
 		job->result = (*p)(this, job->link, *req, &job->resp);
 		job->time_proc = 1000 * (microtime() - job->stime) - job->time_wait;
